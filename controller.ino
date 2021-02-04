@@ -34,7 +34,9 @@ void loop() {
   Serial.print(", control_output: ");
   Serial.print(control_output);
   Serial.println("");
+  delay(300);
 
   // For test, assume the control_output is fully realized
   test_current_val += control_output;
+  
 }
