@@ -20,6 +20,7 @@ double test_setpoint = 0;
 
 void setup() {
   // put your setup code here, to run once:
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -28,9 +29,11 @@ void loop() {
   // Calculate this interval's control output
   double control_output = pid.calculate(test_setpoint, test_current_val);
 
-  char strBuf[60];
-  sprintf(strBuf, "current_val:% 7.3f control_output:% 7.3f\n", test_current_val, control_output);
-  Serial.print(strBuf);
+  Serial.print("current_val: ");
+  Serial.print(test_current_val);
+  Serial.print(", control_output: ");
+  Serial.print(control_output);
+  Serial.println("");
 
   // For test, assume the control_output is fully realized
   test_current_val += control_output;
