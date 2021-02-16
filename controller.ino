@@ -1,10 +1,15 @@
 #include "pid.h"
+#include "LiquidCrystal_I2C.h"
+
 
 // Pin numbers are arbitrary - change it before flashing
 #define thermocouple_pin A6
 #define triac_in_pin A7
 #define triac_out_pin A8
+#define LCD_PRESENT true
 
+// Set the LCD address to 0x27
+LiquidCrystal_I2C lcd(0x27,20,4);
 
 // Create pid object with params
 double dt = 0.1;          // loop interval time
@@ -21,6 +26,18 @@ double test_setpoint = 0;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  Serial.print("Serial started.\n");
+
+  if (LCD_PRESENT) {
+    // Initialize LCD, wait for 5 sec
+    Serial.print("Initializing LCD.\n");
+    lcd.init();
+    lcd.backlight();
+    lcd.clear();
+    lcd.print("Hello, welcome!");
+    Serial.print("LCD Initialized.\n You should see \"Hello, welcome!\" for 5 seconds.");
+    delay(5000);
+  }
 }
 
 void loop() {
@@ -38,5 +55,15 @@ void loop() {
 
   // For test, assume the control_output is fully realized
   test_current_val += control_output;
-  
+
+  if (LCD_PRESENT) {
+    // Refresh the LCD screen
+    lcd.clear(); // Clear the screen
+    lcd.setCursor(3,0);
+    lcd.print("Current value: ");
+    lcd.print(test_current_val);
+    lcd.setCursor(3,1);
+    lcd.print("Control output: ");
+    lcd.print(control_output);
+  }
 }
