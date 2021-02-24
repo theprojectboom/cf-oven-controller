@@ -42,10 +42,11 @@ class Thermocouple
 
             // the sensor changes 10 mV per degree
             // the datasheet says there's a 500 mV offset
-            // ((voltage - 500 mV) times 100)                       // Convert the Voltage to Temperature in Degrees C
+            // ((voltage - 500 mV) times 100)
             temperature = (voltage - tunerVal) * 100;
 
             if (!ifCelsius) {
+                // Convert the Voltage to Temperature in Degrees C
                 temperature = (temperature * (9.0 / 5.0)) + 32.0;
             }
 
