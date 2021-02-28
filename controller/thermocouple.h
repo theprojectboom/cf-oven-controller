@@ -26,14 +26,14 @@
 class Thermocouple
 {
     public:
-        Thermocouple( int pin, bool ifCelsius, double tunerVal ) {
-            pin = pin;
-            ifCelsius = ifCelsius;
-            tunerVal = tunerVal;
+        Thermocouple( int pin, bool ifCelsius, float tunerVal ) {
+            this->pin = pin;
+            this->ifCelsius = ifCelsius;
+            this->tunerVal = tunerVal;
         };
 
         // Returns the manipulated variable given a setpoint and current process value
-        double read() {
+        float read() {
             // Code from Johnathan's previous project
             reading = analogRead(pin);
 
@@ -43,21 +43,22 @@ class Thermocouple
             // the sensor changes 10 mV per degree
             // the datasheet says there's a 500 mV offset
             // ((voltage - 500 mV) times 100)
+            // temperature in Celsius
             temperature = (voltage - tunerVal) * 100;
 
             if (!ifCelsius) {
-                // Convert the Voltage to Temperature in Degrees C
+                // Convert the Celsius reading to Fahrenheit
                 temperature = (temperature * (9.0 / 5.0)) + 32.0;
             }
 
             return temperature;
         }
         ~Thermocouple() {};
-    
+
     private:
         int pin;
         bool ifCelsius;
-        double tunerVal, reading, voltage, temperature;
+        float tunerVal, reading, voltage, temperature;
 };
 
 #endif
