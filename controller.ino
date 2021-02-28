@@ -86,11 +86,13 @@ void loop() {
   if (LCD_PRESENT) {
     // Refresh the LCD screen
     lcd.clear(); // Clear the screen
-    lcd.setCursor(3,0);
-    lcd.print("Curr Temp (F): ");
+
+    lcd.setCursor(0,0);
+    lcd.print("Temp (F): ");
     lcd.print(avg_temp);
-    lcd.setCursor(3,1);
-    lcd.print("Ctrl Ouput: ");
+
+    lcd.setCursor(0,1);
+    lcd.print("CtrlVal: ");
     lcd.print(control_output);
   }
 
