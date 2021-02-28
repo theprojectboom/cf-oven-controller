@@ -11,13 +11,14 @@
 // Setup the LCD Matrix
 LiquidCrystal_I2C lcd(LCD_ADDRESS,20,4);
 
-// Setup the thermocouples, use farenheight
+// Setup the thermocouples, use Fahrenheit
 // For now, use one thermocouple for ease of setup and testing
-Thermocouple t1(0, false, 0.5);
-Thermocouple t2(0, false, 0.5);
-Thermocouple t3(0, false, 0.5);
-Thermocouple t4(0, false, 0.5);
-Thermocouple t5(0, false, 0.5);
+// Set the second argument to true if Celsius is desired.
+Thermocouple t1(A0, false, 0.5);
+Thermocouple t2(A0, false, 0.5);
+Thermocouple t3(A0, false, 0.5);
+Thermocouple t4(A0, false, 0.5);
+Thermocouple t5(A0, false, 0.5);
 
 // PID object params
 double dt = 0.1;          // loop interval time
@@ -44,11 +45,7 @@ void setup() {
     lcd.init();
     lcd.backlight();
     lcd.clear();
-    lcd.print("Hello, welcome!");
-    Serial.print("LCD Initialized.\n You should see \"Hello, welcome!\" for 5 seconds.");
-    delay(5000);
   }
-
 }
 
 void loop() {
@@ -78,7 +75,7 @@ void loop() {
   }
 
   // For now, we'll average all the temp readings in F
-  double avg_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / 5;
+  float avg_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / 5;
 
   // Calculate this interval's control output
   double control_output = pid.calculate(test_setpoint, avg_temp);
@@ -88,8 +85,9 @@ void loop() {
     lcd.clear(); // Clear the screen
 
     lcd.setCursor(0,0);
-    lcd.print("Temp (F): ");
+    lcd.print("Temp: ");
     lcd.print(avg_temp);
+    lcd.print(" F.");
 
     lcd.setCursor(0,1);
     lcd.print("CtrlVal: ");
