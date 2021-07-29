@@ -55,6 +55,7 @@ float prev_temp;
 unsigned long prev_meas_timestamp = 0;
 unsigned long last_heat_adjustment_timestamp = 0;
 unsigned long setpoint_reached_timestamp = 0;
+unsigned long last_lcd_update_timestamp = 0;
 bool update_setpoint_timestamp;
 long votes_for_heat = 0;
 
@@ -118,7 +119,7 @@ void loop() {
   }
   unsigned long current_meas_timestamp = millis();
 
-  if (LCD_PRESENT) {
+  if (LCD_PRESENT && (current_meas_timestamp - last_lcd_update_timestamp > 1000)) {
     // Refresh the LCD screen
     lcd.clear(); // Clear the screen
 
@@ -136,6 +137,8 @@ void loop() {
     lcd.print("Time on (min): ");
     unsigned long time_on_min = millis() / (60 * 1000);
     lcd.print(time_on_min);
+
+    last_lcd_update_timestamp = current_meas_timestamp;
   }
 
   // Delay the loop for human readable debugging
