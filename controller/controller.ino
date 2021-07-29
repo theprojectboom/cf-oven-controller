@@ -124,13 +124,18 @@ void loop() {
 
     lcd.setCursor(0,0);
     lcd.print("Temp: ");
-    lcd.print(current_temp);
+    lcd.print(USE_CELCIUS ? current_temp : toFahrenheit(current_temp));
     lcd.print(USE_CELCIUS ? "C.": "F.");
 
     lcd.setCursor(0,1);
-    lcd.print("Time left: ");
+    lcd.print("Time left (min): ");
     unsigned long time_left_min = (CURE_NOMINAL_HOURS_MINIMUM * 1000 * 3600 - (millis() - setpoint_reached_timestamp)) / (60 * 1000);
     lcd.print(time_left_min);
+
+    lcd.setCursor(0,2);
+    lcd.print("Time on (min): ");
+    unsigned long time_on_min = millis() / (60 * 1000);
+    lcd.print(time_on_min);
   }
 
   // Delay the loop for human readable debugging
