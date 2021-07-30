@@ -203,6 +203,9 @@ void loop() {
       votes_for_heat--;
     }
   }
+
+  prev_temp = current_temp;
+  prev_meas_timestamp = current_meas_timestamp;
 }
 
 // TODO
