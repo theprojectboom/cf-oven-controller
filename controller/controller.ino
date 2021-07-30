@@ -80,7 +80,7 @@ void setup() {
     lcd.clear();
   }
 
-  prev_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / THERMOCOUPLE_COUNT;
+  prev_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / (1.0 * THERMOCOUPLE_COUNT);
   prev_meas_timestamp = millis();
   update_setpoint_timestamp = true;
   last_heat_adjustment_timestamp = millis();
@@ -113,7 +113,7 @@ void loop() {
   }
 
   // For now, we'll average all the temp readings
-  float current_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / THERMOCOUPLE_COUNT;
+  float current_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / (1.0 * THERMOCOUPLE_COUNT);
   if (!USE_CELCIUS) {
     current_temp = toCelcius(current_temp);
   }
@@ -130,12 +130,12 @@ void loop() {
 
     lcd.setCursor(0,1);
     lcd.print("Time left (min): ");
-    unsigned long time_left_min = (CURE_NOMINAL_HOURS_MINIMUM * 1000 * 3600 - (millis() - setpoint_reached_timestamp)) / (60 * 1000);
+    unsigned long time_left_min = (CURE_NOMINAL_HOURS_MINIMUM * 1000 * 3600 - (millis() - setpoint_reached_timestamp)) / (60.0 * 1000);
     lcd.print(time_left_min);
 
     lcd.setCursor(0,2);
     lcd.print("Time on (min): ");
-    unsigned long time_on_min = millis() / (60 * 1000);
+    unsigned long time_on_min = millis() / (60.0 * 1000);
     lcd.print(time_on_min);
 
     last_lcd_update_timestamp = current_meas_timestamp;
@@ -179,12 +179,12 @@ void loop() {
 
   // Controller Logic
   // Evaluate the rate of change in temperature between now and the previous measurement
-  double temperature_change_rate = (current_temp - prev_temp) / (current_meas_timestamp - prev_meas_timestamp);
+  double temperature_change_rate = (current_temp - prev_temp) / (1.0 * (current_meas_timestamp - prev_meas_timestamp));
   
   if (!DO_POSTCURING) {
     // Initial curing mode
-    if (temperature_change_rate <= (MAX_CURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60 * 1000)) && 
-        current_temp < (CURE_NOMINAL_TEMP_C_CEILING + CURE_NOMINAL_TEMP_C_FLOOR)/2) {
+    if (temperature_change_rate <= (MAX_CURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60.0 * 1000)) && 
+        current_temp < (CURE_NOMINAL_TEMP_C_CEILING + CURE_NOMINAL_TEMP_C_FLOOR)/2.0) {
       // Heat up vote
       votes_for_heat++;
     }
@@ -195,7 +195,7 @@ void loop() {
   }
   else {
     // Postcuring mode
-    if (temperature_change_rate <= (MAX_POSTCURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60 * 1000))) {
+    if (temperature_change_rate <= (MAX_POSTCURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60.0 * 1000))) {
       // Heat up votes
       votes_for_heat++;
     }
