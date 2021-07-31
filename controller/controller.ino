@@ -179,11 +179,11 @@ void loop() {
 
   // Controller Logic
   // Evaluate the rate of change in temperature between now and the previous measurement
-  double temperature_change_rate = (current_temp - prev_temp) / (1.0 * (current_meas_timestamp - prev_meas_timestamp));
+  double temperature_change_rate = (current_temp - prev_temp) / (1.0 * (current_meas_timestamp/100.0 - prev_meas_timestamp/100.0));
   
   if (!DO_POSTCURING) {
     // Initial curing mode
-    if (temperature_change_rate <= (MAX_CURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60.0 * 1000)) && 
+    if (temperature_change_rate <= (MAX_CURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60.0 * 10)) && 
         current_temp < (CURE_NOMINAL_TEMP_C_CEILING + CURE_NOMINAL_TEMP_C_FLOOR)/2.0) {
       // Heat up vote
       votes_for_heat++;
@@ -195,7 +195,7 @@ void loop() {
   }
   else {
     // Postcuring mode
-    if (temperature_change_rate <= (MAX_POSTCURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60.0 * 1000))) {
+    if (temperature_change_rate <= (MAX_POSTCURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60.0 * 10))) {
       // Heat up votes
       votes_for_heat++;
     }
@@ -210,4 +210,4 @@ void loop() {
 
 // TODO
 // implement postcuring cooldown mode
-// All internal logic is in celcius -- only display to user is selectable
+// The logic needs improvement - integrator
