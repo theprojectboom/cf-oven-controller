@@ -5,7 +5,7 @@
 // Ensure Pin numbers are customized before flashing
 #define LCD_PRESENT true
 #define LCD_ADDRESS 0x27
-#define TEMP_CALIBRATION true
+#define TEMP_CALIBRATION false
 #define DO_POSTCURING false
 #define HUMAN_DEBUGGING false
 #define THERMOCOUPLE_COUNT 5.0
@@ -129,15 +129,14 @@ void loop() {
     lcd.print(USE_CELCIUS ? "C.": "F.");
 
     lcd.setCursor(0,1);
+    lcd.print("Time left (min): ");
+    unsigned long time_left_min = (CURE_NOMINAL_HOURS_MINIMUM * 1000 * 3600 - (millis() - setpoint_reached_timestamp)) / (60.0 * 1000);
+    lcd.print(time_left_min);
+
+    lcd.setCursor(0,2);
     lcd.print("Time on (min): ");
     unsigned long time_on_min = millis() / (60.0 * 1000);
     lcd.print(time_on_min);
-
-    lcd.setCursor(0,2);
-    lcd.print("Time left (min): ");
-    long time_elapsed_since_setpoint_reached = millis() - setpoint_reached_timestamp;
-    long time_left_min = (CURE_NOMINAL_HOURS_MINIMUM * 1000 * 3600 - time_elapsed_since_setpoint_reached ) / (60.0 * 1000);
-    lcd.print(update_setpoint_timestamp ? 480 : time_left_min);
 
     last_lcd_update_timestamp = current_meas_timestamp;
   }
