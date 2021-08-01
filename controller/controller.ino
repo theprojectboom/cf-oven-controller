@@ -5,12 +5,12 @@
 // Ensure Pin numbers are customized before flashing
 #define LCD_PRESENT true
 #define LCD_ADDRESS 0x27
-#define TEMP_CALIBRATION true
+#define TEMP_CALIBRATION false
 #define DO_POSTCURING false
 #define HUMAN_DEBUGGING false
-#define THERMOCOUPLE_COUNT 5.0
 #define USE_CELCIUS true
 #define HEATER_CTRL_PIN A1
+#define LOOP_DELAY_MS 100
 
 // Requirements from curing spec
 #define DESIRED_TEMP_C_SETPOINT 60.0
@@ -22,19 +22,20 @@
 #define MAX_CURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN 1.0
 #define MAX_POSTCURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN 0.3
 #define MAX_POSTCURE_DESIRED_TEMP_C_DECREASE_RATE_PER_MIN 3.0
-#define TEMP_ADJUSTMENT_PERIOD_SECONDS 1
+#define TEMP_ADJUSTMENT_PERIOD_SECONDS 5
 
 // Setup the LCD Matrix
 LiquidCrystal_I2C lcd(LCD_ADDRESS,20,4);
 
-// Setup the thermocouples, use Fahrenheit
-// For now, use one thermocouple for ease of setup and testing
+// Setup the thermocouples
 // Set the second argument to true if Celsius is desired.
+#define THERMOCOUPLE_COUNT 5
 Thermocouple t1(A0, USE_CELCIUS, 0.5);
 Thermocouple t2(A0, USE_CELCIUS, 0.5);
 Thermocouple t3(A0, USE_CELCIUS, 0.5);
 Thermocouple t4(A0, USE_CELCIUS, 0.5);
 Thermocouple t5(A0, USE_CELCIUS, 0.5);
+Thermocouple thermocouples[THERMOCOUPLE_COUNT] = {t1, t2, t3, t4, t5};
 
 // PID object params
 double dt = 0.1;          // loop interval time
@@ -55,7 +56,9 @@ float prev_temp;
 unsigned long prev_meas_timestamp = 0;
 unsigned long last_heat_adjustment_timestamp = 0;
 unsigned long setpoint_reached_timestamp = 0;
+unsigned long last_lcd_update_timestamp = 0;
 bool update_setpoint_timestamp;
+bool heater_on;
 long votes_for_heat = 0;
 
 double toFahrenheit(double celcius) {
@@ -79,7 +82,8 @@ void setup() {
     lcd.clear();
   }
 
-  prev_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / THERMOCOUPLE_COUNT;
+  heater_on = false;
+  prev_temp = 0.0;
   prev_meas_timestamp = millis();
   update_setpoint_timestamp = true;
   last_heat_adjustment_timestamp = millis();
@@ -90,52 +94,57 @@ void loop() {
   if (TEMP_CALIBRATION) {
     // Log the temperature to serial output
     // We'll save this to an output file on a companion computer
-    Serial.print("T1, ");
-    Serial.print(t1.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
 
-    Serial.print("T2, ");
-    Serial.print(t2.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
-
-    Serial.print("T3, ");
-    Serial.print(t3.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
-
-    Serial.print("T4, ");
-    Serial.print(t4.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
-
-    Serial.print("T5, ");
-    Serial.print(t5.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
+    for (int i=0;i<THERMOCOUPLE_COUNT;i++) {
+      Serial.print(thermocouples[i].read());
+      Serial.print(USE_CELCIUS ? "C": "F");
+      Serial.print(", ");
+    }
+    Serial.print("\n");
+    
+    // Delay the loop for human readable debugging
+    if (HUMAN_DEBUGGING) {
+      delay(300);
+    }
   }
 
-  // For now, we'll average all the temp readings
-  float current_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / THERMOCOUPLE_COUNT;
+  // Measure average temperature in the oven
+  float current_temp = 0.0;
+  for (int i=0;i<THERMOCOUPLE_COUNT;i++) {
+    current_temp += thermocouples[i].read();
+  }
+  current_temp /= THERMOCOUPLE_COUNT;
   if (!USE_CELCIUS) {
     current_temp = toCelcius(current_temp);
   }
+
+  // Record current timestamp
   unsigned long current_meas_timestamp = millis();
 
-  if (LCD_PRESENT) {
+  if (LCD_PRESENT && (current_meas_timestamp - last_lcd_update_timestamp > 1000)) {
     // Refresh the LCD screen
     lcd.clear(); // Clear the screen
 
     lcd.setCursor(0,0);
     lcd.print("Temp: ");
-    lcd.print(current_temp);
+    lcd.print(USE_CELCIUS ? current_temp : toFahrenheit(current_temp));
     lcd.print(USE_CELCIUS ? "C.": "F.");
 
     lcd.setCursor(0,1);
-    lcd.print("Time left: ");
-    unsigned long time_left_min = (CURE_NOMINAL_HOURS_MINIMUM * 1000 * 3600 - (millis() - setpoint_reached_timestamp)) / (60 * 1000);
+    lcd.print("Time left (min): ");
+    unsigned long time_left_min = (CURE_NOMINAL_HOURS_MINIMUM * 1000 * 3600 - (millis() - setpoint_reached_timestamp)) / (60.0 * 1000);
     lcd.print(time_left_min);
-  }
 
-  // Delay the loop for human readable debugging
-  if (HUMAN_DEBUGGING) {
-    delay(300);
+    lcd.setCursor(0,2);
+    lcd.print("Time on (min): ");
+    unsigned long time_on_min = millis() / (60.0 * 1000);
+    lcd.print(time_on_min);
+
+    lcd.setCursor(0,3);
+    lcd.print("Heater is ");
+    lcd.print(heater_on ? "ON" : "OFF");
+
+    last_lcd_update_timestamp = current_meas_timestamp;
   }
 
   // Stop the heater after the desired curing time, and let the oven cool down
@@ -147,9 +156,11 @@ void loop() {
   if (millis() - last_heat_adjustment_timestamp >= TEMP_ADJUSTMENT_PERIOD_SECONDS * 1000) {
     if (votes_for_heat > 0) {
       analogWrite(HEATER_CTRL_PIN, 255);
+      heater_on = true;
     }
     else {
       analogWrite(HEATER_CTRL_PIN, 0);
+      heater_on = false;
     }
     // Reset the timer var and votes
     last_heat_adjustment_timestamp = millis();
@@ -171,23 +182,33 @@ void loop() {
 
   // Controller Logic
   // Evaluate the rate of change in temperature between now and the previous measurement
-  double temperature_change_rate = (current_temp - prev_temp) / (current_meas_timestamp - prev_meas_timestamp);
+  double temperature_change_rate = (current_temp - prev_temp) / (1.0 * (current_meas_timestamp/100.0 - prev_meas_timestamp/100.0));
   
   if (!DO_POSTCURING) {
     // Initial curing mode
-    if (temperature_change_rate <= (MAX_CURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60 * 1000)) && 
-        current_temp < (CURE_NOMINAL_TEMP_C_CEILING + CURE_NOMINAL_TEMP_C_FLOOR)/2) {
+    if (temperature_change_rate <= (MAX_CURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60.0 * 10)) && 
+        current_temp < (CURE_NOMINAL_TEMP_C_CEILING + CURE_NOMINAL_TEMP_C_FLOOR)/2.0) {
       // Heat up vote
       votes_for_heat++;
+
+      // Human readable output
+      if (HUMAN_DEBUGGING) {
+        Serial.print("Vote for heat++\n");
+      }
     }
     else {
       // Heat down vote
       votes_for_heat--;
+
+      // Human readable output
+      if (HUMAN_DEBUGGING) {
+        Serial.print("Vote for heat--\n");
+      }
     }
   }
   else {
     // Postcuring mode
-    if (temperature_change_rate <= (MAX_POSTCURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60 * 1000))) {
+    if (temperature_change_rate <= (MAX_POSTCURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN / (60.0 * 10))) {
       // Heat up votes
       votes_for_heat++;
     }
@@ -195,8 +216,8 @@ void loop() {
       votes_for_heat--;
     }
   }
-}
 
-// TODO
-// implement postcuring cooldown mode
-// All internal logic is in celcius -- only display to user is selectable
+  prev_temp = current_temp;
+  prev_meas_timestamp = current_meas_timestamp;
+  delay(LOOP_DELAY_MS);
+}
