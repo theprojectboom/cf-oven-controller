@@ -213,7 +213,3 @@ void loop() {
   prev_meas_timestamp = current_meas_timestamp;
   delay(LOOP_DELAY_MS);
 }
-
-// TODO
-// implement postcuring cooldown mode
-// The logic needs improvement - integrator
