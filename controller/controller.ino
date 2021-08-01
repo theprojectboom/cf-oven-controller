@@ -10,6 +10,7 @@
 #define HUMAN_DEBUGGING false
 #define USE_CELCIUS true
 #define HEATER_CTRL_PIN A1
+#define LOOP_DELAY_MS 100
 
 // Requirements from curing spec
 #define DESIRED_TEMP_C_SETPOINT 60.0
@@ -21,7 +22,7 @@
 #define MAX_CURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN 1.0
 #define MAX_POSTCURE_DESIRED_TEMP_C_INCREASE_RATE_PER_MIN 0.3
 #define MAX_POSTCURE_DESIRED_TEMP_C_DECREASE_RATE_PER_MIN 3.0
-#define TEMP_ADJUSTMENT_PERIOD_SECONDS 1
+#define TEMP_ADJUSTMENT_PERIOD_SECONDS 5
 
 // Setup the LCD Matrix
 LiquidCrystal_I2C lcd(LCD_ADDRESS,20,4);
@@ -80,7 +81,7 @@ void setup() {
     lcd.clear();
   }
 
-  prev_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / (1.0 * THERMOCOUPLE_COUNT);
+  prev_temp = 0.0;
   prev_meas_timestamp = millis();
   update_setpoint_timestamp = true;
   last_heat_adjustment_timestamp = millis();
@@ -98,6 +99,11 @@ void loop() {
       Serial.print(", ");
     }
     Serial.print("\n");
+    
+    // Delay the loop for human readable debugging
+    if (HUMAN_DEBUGGING) {
+      delay(300);
+    }
   }
 
   // Measure average temperature in the oven
@@ -133,11 +139,6 @@ void loop() {
     lcd.print(time_on_min);
 
     last_lcd_update_timestamp = current_meas_timestamp;
-  }
-
-  // Delay the loop for human readable debugging
-  if (HUMAN_DEBUGGING) {
-    delay(300);
   }
 
   // Stop the heater after the desired curing time, and let the oven cool down
@@ -181,10 +182,20 @@ void loop() {
         current_temp < (CURE_NOMINAL_TEMP_C_CEILING + CURE_NOMINAL_TEMP_C_FLOOR)/2.0) {
       // Heat up vote
       votes_for_heat++;
+
+      // Human readable output
+      if (HUMAN_DEBUGGING) {
+        Serial.print("Vote for heat++\n");
+      }
     }
     else {
       // Heat down vote
       votes_for_heat--;
+
+      // Human readable output
+      if (HUMAN_DEBUGGING) {
+        Serial.print("Vote for heat--\n");
+      }
     }
   }
   else {
@@ -200,6 +211,7 @@ void loop() {
 
   prev_temp = current_temp;
   prev_meas_timestamp = current_meas_timestamp;
+  delay(LOOP_DELAY_MS);
 }
 
 // TODO
