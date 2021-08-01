@@ -58,6 +58,7 @@ unsigned long last_heat_adjustment_timestamp = 0;
 unsigned long setpoint_reached_timestamp = 0;
 unsigned long last_lcd_update_timestamp = 0;
 bool update_setpoint_timestamp;
+bool heater_on;
 long votes_for_heat = 0;
 
 double toFahrenheit(double celcius) {
@@ -81,6 +82,7 @@ void setup() {
     lcd.clear();
   }
 
+  heater_on = false;
   prev_temp = 0.0;
   prev_meas_timestamp = millis();
   update_setpoint_timestamp = true;
@@ -138,6 +140,10 @@ void loop() {
     unsigned long time_on_min = millis() / (60.0 * 1000);
     lcd.print(time_on_min);
 
+    lcd.setCursor(0,3);
+    lcd.print("Heater is ");
+    lcd.print(heater_on ? "ON" : "OFF");
+
     last_lcd_update_timestamp = current_meas_timestamp;
   }
 
@@ -150,9 +156,11 @@ void loop() {
   if (millis() - last_heat_adjustment_timestamp >= TEMP_ADJUSTMENT_PERIOD_SECONDS * 1000) {
     if (votes_for_heat > 0) {
       analogWrite(HEATER_CTRL_PIN, 255);
+      heater_on = true;
     }
     else {
       analogWrite(HEATER_CTRL_PIN, 0);
+      heater_on = false;
     }
     // Reset the timer var and votes
     last_heat_adjustment_timestamp = millis();
