@@ -8,7 +8,6 @@
 #define TEMP_CALIBRATION false
 #define DO_POSTCURING false
 #define HUMAN_DEBUGGING false
-#define THERMOCOUPLE_COUNT 5.0
 #define USE_CELCIUS true
 #define HEATER_CTRL_PIN A1
 
@@ -27,14 +26,15 @@
 // Setup the LCD Matrix
 LiquidCrystal_I2C lcd(LCD_ADDRESS,20,4);
 
-// Setup the thermocouples, use Fahrenheit
-// For now, use one thermocouple for ease of setup and testing
+// Setup the thermocouples
 // Set the second argument to true if Celsius is desired.
+#define THERMOCOUPLE_COUNT 5
 Thermocouple t1(A0, USE_CELCIUS, 0.5);
 Thermocouple t2(A0, USE_CELCIUS, 0.5);
 Thermocouple t3(A0, USE_CELCIUS, 0.5);
 Thermocouple t4(A0, USE_CELCIUS, 0.5);
 Thermocouple t5(A0, USE_CELCIUS, 0.5);
+Thermocouple thermocouples[THERMOCOUPLE_COUNT] = {t1, t2, t3, t4, t5};
 
 // PID object params
 double dt = 0.1;          // loop interval time
@@ -91,32 +91,26 @@ void loop() {
   if (TEMP_CALIBRATION) {
     // Log the temperature to serial output
     // We'll save this to an output file on a companion computer
-    Serial.print("T1, ");
-    Serial.print(t1.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
 
-    Serial.print("T2, ");
-    Serial.print(t2.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
-
-    Serial.print("T3, ");
-    Serial.print(t3.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
-
-    Serial.print("T4, ");
-    Serial.print(t4.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
-
-    Serial.print("T5, ");
-    Serial.print(t5.read());
-    Serial.println(USE_CELCIUS ? "C": "F");
+    for (int i=0;i<THERMOCOUPLE_COUNT;i++) {
+      Serial.print(thermocouples[i].read());
+      Serial.print(USE_CELCIUS ? "C": "F");
+      Serial.print(", ");
+    }
+    Serial.print("\n");
   }
 
-  // For now, we'll average all the temp readings
-  float current_temp = (t1.read() + t2.read() + t3.read() + t4.read() + t5.read()) / (1.0 * THERMOCOUPLE_COUNT);
+  // Measure average temperature in the oven
+  float current_temp = 0.0;
+  for (int i=0;i<THERMOCOUPLE_COUNT;i++) {
+    current_temp += thermocouples[i].read();
+  }
+  current_temp /= THERMOCOUPLE_COUNT;
   if (!USE_CELCIUS) {
     current_temp = toCelcius(current_temp);
   }
+
+  // Record current timestamp
   unsigned long current_meas_timestamp = millis();
 
   if (LCD_PRESENT && (current_meas_timestamp - last_lcd_update_timestamp > 1000)) {
